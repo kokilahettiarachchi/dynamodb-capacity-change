@@ -1,4 +1,4 @@
-package com.test;
+package com.kokila;
 
 //This file is originally created by Choolake Suwandarathna.
 //It might be based on the help from AWS support services.
@@ -24,28 +24,31 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class App implements RequestHandler<Map<String,String>, String> {
-
-	static AWSApplicationAutoScalingClient aaClient = (AWSApplicationAutoScalingClient) AWSApplicationAutoScalingClientBuilder.standard().build();
-
+	private static Logger LOGGER = LoggerFactory.getLogger(App.class);
+	private static AWSApplicationAutoScalingClient aaClient = (AWSApplicationAutoScalingClient) AWSApplicationAutoScalingClientBuilder.standard().build();
 
 
 	@Override
 	public String handleRequest(Map<String,String> event, Context context) {
 
-		String role_arn=event.get("role_arn");
-		String table=event.get("table");
-		int min_write_capacity=Integer.valueOf(event.get("min_write_capacity"));
-		int max_write_capacity=Integer.valueOf(event.get("max_write_capacity"));
+		String roleArn = event.get("role_arn");
+		String table = event.get("table");
+		int minWriteCapacity = Integer.parseInt(event.get("min_write_capacity"));
+		int maxWriteCapacity = Integer.parseInt(event.get("max_write_capacity"));
 
 		ServiceNamespace ns = ServiceNamespace.Dynamodb;
 		ScalableDimension tableWCUs = ScalableDimension.DynamodbTableWriteCapacityUnits;
 		String resourceID = "table/"+table;
 
-		System.out.println("resourceID: "+resourceID);
-		System.out.println("min_write_capacity: "+min_write_capacity);
-		System.out.println("max_write_capacity: "+max_write_capacity);
-		System.out.println("role_arn: "+role_arn);
+
+		LOGGER.info("run date: {}", resourceID);
+		LOGGER.info("min_write_capacity: {}", minWriteCapacity);
+		LOGGER.info("max_write_capacity: {}", maxWriteCapacity);
+		LOGGER.info("role_arn: {}", roleArn);
 
 
 		// Define the scalable target
@@ -53,15 +56,14 @@ public class App implements RequestHandler<Map<String,String>, String> {
 				.withServiceNamespace(ns)
 				.withResourceId(resourceID)
 				.withScalableDimension(tableWCUs)
-				.withMinCapacity(min_write_capacity)
-				.withMaxCapacity(max_write_capacity)
-				.withRoleARN(role_arn);
+				.withMinCapacity(minWriteCapacity)
+				.withMaxCapacity(maxWriteCapacity)
+				.withRoleARN(roleArn);
 
 		try {
 			aaClient.registerScalableTarget(rstRequest);
 		} catch (Exception e) {
-			System.err.println("Unable to register scalable target: ");
-			System.err.println(e.getMessage());
+			LOGGER.error("Unable to register scalable target: ", e);
 		}
 
 		// Verify that the target was created
@@ -71,15 +73,14 @@ public class App implements RequestHandler<Map<String,String>, String> {
 				.withResourceIds(resourceID);
 		try {
 			DescribeScalableTargetsResult dsaResult = aaClient.describeScalableTargets(dscRequest);
-			System.out.println("DescribeScalableTargets result: ");
-			System.out.println(dsaResult);
-			System.out.println();
+
+			LOGGER.error("Unable to register scalable target: ");
+			LOGGER.error(String.valueOf(dsaResult));
 		} catch (Exception e) {
-			System.err.println("Unable to describe scalable target: ");
-			System.err.println(e.getMessage());
+			LOGGER.error("Unable to describe scalable target: ");
+			LOGGER.error(e.getMessage());
 		}
 
-		System.out.println();
 
 		// Configure a scaling policy
 		TargetTrackingScalingPolicyConfiguration targetTrackingScalingPolicyConfiguration =
@@ -103,8 +104,8 @@ public class App implements RequestHandler<Map<String,String>, String> {
 		try {
 			aaClient.putScalingPolicy(pspRequest);
 		} catch (Exception e) {
-			System.err.println("Unable to put scaling policy: ");
-			System.err.println(e.getMessage());
+			LOGGER.error("Unable to put scaling policy: ");
+			LOGGER.error(e.getMessage());
 		}
 
 		// Verify that the scaling policy was created
@@ -115,12 +116,10 @@ public class App implements RequestHandler<Map<String,String>, String> {
 
 		try {
 			DescribeScalingPoliciesResult dspResult = aaClient.describeScalingPolicies(dspRequest);
-			System.out.println("DescribeScalingPolicies result: ");
-			System.out.println(dspResult);
+			LOGGER.error("DescribeScalingPolicies result: ");
+			LOGGER.debug(String.valueOf(dspResult));
 		} catch (Exception e) {
-			e.printStackTrace();
-			System.err.println("Unable to describe scaling policy: ");
-			System.err.println(e.getMessage());
+			LOGGER.error("Unable to describe scaling policy: ", e);
 		}
 
 		return "done";
