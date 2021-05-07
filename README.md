@@ -1,13 +1,17 @@
-# dynamodb-capacity-change
-Automatic Dynamodb Capacity Change Lambda
+# DynamoDB Provisioned Capacity Adjuster
+This lambda function will adjust your AWS dynamodb write capacity on the fly. If you need to adjust the provisioned capacity to a specific value during a time window, this is your ticket home.
 
-Initial work done by Choolake Suwandarathna. It might be based on the help from AWS support services.
-I have done some modifications and testing.
+Contributers
+@C4Jay 
+@kokilahettiarachchi
+@dialoglk
 
 Create the AWS Lambda with target jar file. You have to invoke it with following payload:
+```json
 {
   "role_arn": "arn:aws:iam::<account id>:role/<role name>",
   "table": "<dynamodb table name>",
   "min_write_capacity": "<value>",
   "max_write_capacity": "<value>"
 }
+```
